@@ -1,4 +1,4 @@
-module github.com/juanmanuel0963/go_grpc_usermgmt
+module github.com/juanmanuel0963/go_grpc_usermgmt/v2
 
 go 1.19
 
