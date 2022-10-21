@@ -3,15 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"math/rand"
 	"net"
 	"os"
 
-	pb "github.com/juanmanuel0963/go_grpc_usermgmt/v3/usermgmt"
+	"github.com/jackc/pgx/v4"
+	pb "github.com/juanmanuel0963/go_grpc_usermgmt/v4/usermgmt"
 	"google.golang.org/grpc"
-	"google.golang.org/protobuf/encoding/protojson"
 )
 
 const (
@@ -23,6 +21,8 @@ func NewUserManagementServer() *UserManagementServer {
 }
 
 type UserManagementServer struct {
+	conn                *pgx.Conn
+	first_user_creation bool
 	pb.UnimplementedUserManagementServer
 }
 
@@ -35,6 +35,7 @@ func (server *UserManagementServer) Run() error {
 	s := grpc.NewServer()
 	pb.RegisterUserManagementServer(s, server)
 	log.Printf("server listening at %v", lis.Addr())
+
 	return s.Serve(lis)
 }
 
@@ -42,59 +43,70 @@ func (server *UserManagementServer) Run() error {
 // userlist struct, then append new user and write new userlist back to file
 func (server *UserManagementServer) CreateNewUser(ctx context.Context, in *pb.NewUser) (*pb.User, error) {
 
+	createSql := `
+	create table if not exists users(
+		id SERIAL PRIMARY KEY,
+		name text,
+		age int
+	);
+	`
+	_, err := server.conn.Exec(context.Background(), createSql)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Table creation failed: %v\n", err)
+		os.Exit(1)
+	}
+
+	server.first_user_creation = false
+
 	log.Printf("Received: %v", in.GetName())
-	readBytes, err := ioutil.ReadFile("users.json")
-	var users_list *pb.UsersList = &pb.UsersList{}
-	var user_id = int32(rand.Intn(100))
-	created_user := &pb.User{Name: in.GetName(), Age: in.GetAge(), Id: user_id}
 
+	created_user := &pb.User{Name: in.GetName(), Age: in.GetAge()}
+	tx, err := server.conn.Begin(context.Background())
 	if err != nil {
-		if os.IsNotExist(err) {
-			fmt.Printf("%s: File not found.  Creating new file.\n", "users.json")
-			users_list.Users = append(users_list.Users, created_user)
-			jsonBytes, err := protojson.Marshal(users_list)
-			if err != nil {
-				log.Fatalf("JSON Marshaling failed: %v", err)
-			}
-			if err := ioutil.WriteFile("users.json", jsonBytes, 0664); err != nil {
-				log.Fatalf("Failed write to file: %v", err)
-			}
-			return created_user, nil
-		} else {
-			log.Fatalln("Error reading file:", err)
-		}
+		log.Fatalf("conn.Begin failed: %v", err)
 	}
 
-	if err := protojson.Unmarshal(readBytes, users_list); err != nil {
-		log.Fatalf("Failed to parse user list: %v", err)
-	}
-	users_list.Users = append(users_list.Users, created_user)
-	jsonBytes, err := protojson.Marshal(users_list)
+	_, err = tx.Exec(context.Background(), "insert into users(name, age) values ($1,$2)",
+		created_user.Name, created_user.Age)
 	if err != nil {
-		log.Fatalf("JSON Marshaling failed: %v", err)
+		log.Fatalf("tx.Exec failed: %v", err)
 	}
-	if err := ioutil.WriteFile("users.json", jsonBytes, 0664); err != nil {
-		log.Fatalf("Failed write to file: %v", err)
-	}
+	tx.Commit(context.Background())
 	return created_user, nil
 
 }
 
 func (server *UserManagementServer) GetUsers(ctx context.Context, in *pb.GetUsersParams) (*pb.UsersList, error) {
-	jsonBytes, err := ioutil.ReadFile("users.json")
-	if err != nil {
-		log.Fatalf("Failed read from file: %v", err)
-	}
-	var users_list *pb.UsersList = &pb.UsersList{}
-	if err := protojson.Unmarshal(jsonBytes, users_list); err != nil {
-		log.Fatalf("Unmarshaling failed: %v", err)
-	}
 
+	var users_list *pb.UsersList = &pb.UsersList{}
+	rows, err := server.conn.Query(context.Background(), "select * from users")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		user := pb.User{}
+		err = rows.Scan(&user.Id, &user.Name, &user.Age)
+		if err != nil {
+			return nil, err
+		}
+		users_list.Users = append(users_list.Users, &user)
+
+	}
 	return users_list, nil
 }
 
 func main() {
+	//database_url1 := "postgres://postgres:mysecretpassword@localhost:5432/postgres"
+	database_url := "postgres://db_master:PASSWORD@db-server-postgresql-romantic-shark.cm03k8s4ogkh.us-east-1.rds.amazonaws.com:5432/db_postgresql_romantic_shark?sslmode=disable"
 	var user_mgmt_server *UserManagementServer = NewUserManagementServer()
+	conn, err := pgx.Connect(context.Background(), database_url)
+	if err != nil {
+		log.Fatalf("Unable to establish connection: %v", err)
+	}
+	defer conn.Close(context.Background())
+	user_mgmt_server.conn = conn
+	user_mgmt_server.first_user_creation = true
 	if err := user_mgmt_server.Run(); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}

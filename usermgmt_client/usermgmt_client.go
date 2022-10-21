@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	pb "github.com/juanmanuel0963/go_grpc_usermgmt/v3/usermgmt"
+	pb "github.com/juanmanuel0963/go_grpc_usermgmt/v4/usermgmt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -43,7 +43,7 @@ ID: %d`, r.GetName(), r.GetAge(), r.GetId())
 	params := &pb.GetUsersParams{}
 	r, err := c.GetUsers(ctx, params)
 	if err != nil {
-		log.Fatalf("could not create user: %v", err)
+		log.Fatalf("could not get users: %v", err)
 	}
 	log.Print("\nUSER LIST: \n")
 	fmt.Printf("r.GetUsers(): %v\n", r.GetUsers())
