@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package usermgmt;
+package usermgmt_op4_db_postgres;
 
-option go_package = "github.com/juanmanuel0963/go_grpc_usermgmt/v4;go_grpc_usermgmt";
+option go_package = "github.com/juanmanuel0963/go_grpc_usermgmt/v5;go_grpc_usermgmt_op4_db_postgres";
 
 service UserManagement {
   rpc CreateNewUser (NewUser) returns (User) {}

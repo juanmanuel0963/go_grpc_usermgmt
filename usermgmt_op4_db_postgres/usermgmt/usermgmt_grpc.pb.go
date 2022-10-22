@@ -4,7 +4,7 @@
 // - protoc             v3.21.8
 // source: usermgmt/usermgmt.proto
 
-package go_grpc_usermgmt
+package go_grpc_usermgmt_op4_db_postgres
 
 import (
 	context "context"
@@ -36,7 +36,7 @@ func NewUserManagementClient(cc grpc.ClientConnInterface) UserManagementClient {
 
 func (c *userManagementClient) CreateNewUser(ctx context.Context, in *NewUser, opts ...grpc.CallOption) (*User, error) {
 	out := new(User)
-	err := c.cc.Invoke(ctx, "/usermgmt.UserManagement/CreateNewUser", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/usermgmt_op4_db_postgres.UserManagement/CreateNewUser", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +45,7 @@ func (c *userManagementClient) CreateNewUser(ctx context.Context, in *NewUser, o
 
 func (c *userManagementClient) GetUsers(ctx context.Context, in *GetUsersParams, opts ...grpc.CallOption) (*UsersList, error) {
 	out := new(UsersList)
-	err := c.cc.Invoke(ctx, "/usermgmt.UserManagement/GetUsers", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/usermgmt_op4_db_postgres.UserManagement/GetUsers", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +94,7 @@ func _UserManagement_CreateNewUser_Handler(srv interface{}, ctx context.Context,
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/usermgmt.UserManagement/CreateNewUser",
+		FullMethod: "/usermgmt_op4_db_postgres.UserManagement/CreateNewUser",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(UserManagementServer).CreateNewUser(ctx, req.(*NewUser))
@@ -112,7 +112,7 @@ func _UserManagement_GetUsers_Handler(srv interface{}, ctx context.Context, dec 
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/usermgmt.UserManagement/GetUsers",
+		FullMethod: "/usermgmt_op4_db_postgres.UserManagement/GetUsers",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(UserManagementServer).GetUsers(ctx, req.(*GetUsersParams))
@@ -124,7 +124,7 @@ func _UserManagement_GetUsers_Handler(srv interface{}, ctx context.Context, dec 
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var UserManagement_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "usermgmt.UserManagement",
+	ServiceName: "usermgmt_op4_db_postgres.UserManagement",
 	HandlerType: (*UserManagementServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
